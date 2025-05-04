@@ -1,1 +1,6 @@
-export class Pokemon {}
+import { Document } from "mongoose";
+
+export class Pokemon extends Document{
+    name: string
+    no: number
+}
