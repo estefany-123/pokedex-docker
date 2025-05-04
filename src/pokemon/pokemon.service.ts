@@ -13,8 +13,10 @@ export class PokemonService {
     private readonly pokemonModel : Model<Pokemon>
   ){}
 
-  create(createPokemonDto: CreatePokemonDto) {
-    return 'This action adds a new pokemon';
+  async create(createPokemonDto: CreatePokemonDto) {
+    createPokemonDto.name = createPokemonDto.name.toLowerCase();
+    const pokemon = await this.pokemonModel.create(createPokemonDto);
+    return pokemon;
   }
 
   findAll() {
