@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 import { Model } from 'mongoose';
@@ -33,15 +33,53 @@ export class PokemonService {
     return pokemons;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} pokemon`;
+  async findOne(id: string) {
+    const pokemon = await this.pokemonModel.findById(id);
+    if(!pokemon) throw new NotFoundException(`No se encuentra un pokémon con el id ${id}`);
+    return pokemon;
   }
 
-  update(id: number, updatePokemonDto: UpdatePokemonDto) {
-    return `This action updates a #${id} pokemon`;
+  async update(id: string, updatePokemonDto: UpdatePokemonDto) {
+    if (updatePokemonDto.name)
+      updatePokemonDto.name = updatePokemonDto.name.toLowerCase();
+
+    try {
+      const updatedPokemon = await this.pokemonModel.findByIdAndUpdate(
+        id,
+        updatePokemonDto,
+        { new: true, runValidators: true },
+      );
+
+      if (!updatedPokemon) {
+        throw new NotFoundException(
+          `No se encontró un Pokémon con el ID ${id}`,
+        );
+      }
+
+      return updatedPokemon;
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new BadRequestException(
+          `El Pokémon con esos datos ya existe: ${JSON.stringify(error.keyValue)}`,
+        );
+      }
+      console.error(error);
+      throw new InternalServerErrorException(
+        'No se pudo actualizar el Pokémon - revise el log',
+      );
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} pokemon`;
+  async remove(id: string) {
+
+    const deleted = await this.pokemonModel.findByIdAndDelete(id);
+    if (!deleted) {
+      throw new NotFoundException(`No se encontró un Pokémon con el ID ${id}`);
+    }
+
+    return {
+      message: `El Pokémon con ID ${id} fue eliminado exitosamente`,
+      deletedPokemon: deleted,
+    };
   }
 }
